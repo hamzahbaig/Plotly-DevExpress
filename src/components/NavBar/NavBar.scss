@@ -1,0 +1,37 @@
+$primary: #222f3e;
+$primary-inverse: #ffffff;
+.NavBar {
+  h1,
+  p {
+    padding: 10px;
+  }
+  color: $primary-inverse;
+  height: 100vh;
+  width: 100%;
+  background-color: $primary;
+  overflow: hidden;
+  .navSearch {
+    width: 250px;
+  }
+  ul {
+    list-style-type: none;
+    li {
+      .navAnchor {
+        color: $primary-inverse;
+        text-decoration: none;
+      }
+      cursor: pointer;
+      margin: 0px;
+      width: 100%;
+      padding: 20px 10px;
+      text-decoration: none;
+      &:hover {
+        background-color: darken($primary, 10%);
+      }
+    }
+    .selected {
+      font-weight: bold;
+      background-color: darken($primary, 10%);
+    }
+  }
+}
