@@ -37,7 +37,7 @@ class DataGridComponent extends React.Component {
     this.state = {
       dataGrid: null,
       chartRef: null,
-      dataSource: generateData(200),
+      dataSource: generateData(100),
       filteredData: null,
       totalRowsCount: 0,
       selectedData: [],

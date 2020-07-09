@@ -11,6 +11,7 @@ import DataGrid, {
   ColumnChooser,
   ColumnFixing,
   Editing,
+  FilterPanel,
 } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
 import { generateData } from "./data.js";
@@ -22,7 +23,7 @@ export class PlotlyChart extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      dataSource: generateData(10),
+      dataSource: generateData(100),
       dataGrid: null,
       filteredData: null,
       totalRowsCount: 0,
@@ -43,25 +44,27 @@ export class PlotlyChart extends Component {
 
   onSelectionChanged = (event) => {
     if (event.currentSelectedRowKeys.length) {
-      const selectedRowsData = event.selectedRowsData;
+      let currentSelectedRowsData = event.currentSelectedRowKeys;
       let selectedColorList = this.state.colorList;
-      selectedRowsData.forEach((data) => {
-        selectedColorList[data.id - 1] = this.state.selectionColor;
+      currentSelectedRowsData.forEach((data) => {
+        let index = this.state.filteredData.indexOf(data);
+        selectedColorList[index] = this.state.selectionColor;
       });
       this.setState({
-        selectedData: selectedRowsData,
-        colorList: this.state.colorList,
+        colorList: selectedColorList,
+        selectedData: event.selectedRowsData,
       });
     } else if (event.currentDeselectedRowKeys.length) {
       let selectedColorList = this.state.colorList;
       const currentDeselectedRowKeys = event.currentDeselectedRowKeys;
       const selectedRowsData = event.selectedRowsData;
       currentDeselectedRowKeys.forEach((data) => {
-        selectedColorList[data.id - 1] = this.state.unselectionColor;
+        let index = this.state.filteredData.indexOf(data);
+        selectedColorList[index] = this.state.unselectionColor;
       });
       this.setState({
         selectedData: selectedRowsData,
-        colorList: this.state.colorList,
+        colorList: selectedColorList,
       });
     }
   };
@@ -70,20 +73,31 @@ export class PlotlyChart extends Component {
   onContentReady = () => {
     let filterExp = this.state.dataGrid.instance.getCombinedFilter();
     if (filterExp) {
-      let sortColumn = this.state.dataGrid.instance.columnOption(
-        "sortIndex:0"
-      ) || { dataField: "" };
+      // let f = [["lastName","=","Scott"],"or",["lastName","=","Allen"]]
       let filteredData = Query(this.state.dataSource)
         .filter(filterExp)
-        .sortBy(sortColumn.dataField, sortColumn.sortOrder == "desc")
         .toArray();
+      let colorList = filteredData.map(() => this.state.unselectionColor);
+      this.state.selectedData.forEach((data) => {
+        let index = filteredData.indexOf(data);
+        colorList[index] = this.state.selectionColor;
+      });
       this.setState({
         filteredData: filteredData,
+        colorList,
       });
     } else {
       this.state.dataGrid.instance.clearFilter();
+      let colorList = this.state.dataSource.map(
+        () => this.state.unselectionColor
+      );
+      this.state.selectedData.forEach((data) => {
+        let index = this.state.dataSource.indexOf(data);
+        colorList[index] = this.state.selectionColor;
+      });
       this.setState({
         filteredData: this.state.dataSource,
+        colorList,
       });
     }
   };
@@ -93,7 +107,7 @@ export class PlotlyChart extends Component {
     this.state.dataGrid.instance.clearSelection();
     this.setState({
       selectedData: [],
-      colorList: this.state.dataSource.map(() => this.state.unselectionColor),
+      colorList: this.state.filteredData.map(() => this.state.unselectionColor),
     });
   };
 
@@ -150,7 +164,7 @@ export class PlotlyChart extends Component {
               id: "gridContainer",
             }}
             ref={(ref) => (this.state.dataGrid = ref)}
-            dataSource={this.state.dataSource}
+            dataSource={this.state.filteredData}
             showBorders={true}
             onSelectionChanged={this.onSelectionChanged}
             onContentReady={this.onContentReady}
@@ -158,6 +172,7 @@ export class PlotlyChart extends Component {
             allowColumnResizing={true}
             selectedRowKeys={this.state.selectedData}
           >
+            {/* <FilterPanel visible={true} /> */}
             <Editing mode="row" useIcons={true} allowUpdating={true} />
             <ColumnChooser enabled={true} />
             <ColumnFixing enabled={true} />
@@ -166,7 +181,7 @@ export class PlotlyChart extends Component {
             <HeaderFilter visible={true} />
             <SearchPanel visible={true} width={240} placeholder="Search..." />
             <Sorting mode="multiple" />
-            <Scrolling mode="virtual" />
+            <Scrolling mode="standard" />
           </DataGrid>
           <div className="options">
             <div className="caption">
@@ -190,6 +205,7 @@ export class PlotlyChart extends Component {
                 text: this.state.filteredData.map((ele) => ele.firstName),
                 customdata: this.state.filteredData.map((ele) => ele.lastName),
                 mode: "markers",
+                selectedPoints: this.state.selectedData,
                 marker: { size: 10, color: this.state.colorList },
                 selected: {
                   marker: { color: this.state.selectionColor, size: 15 },
