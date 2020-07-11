@@ -98,7 +98,6 @@ class PlotlyChart extends Component {
     if (this.state.advancedFilterFlag == true) return;
     let filterExp = this.state.dataGrid.instance.getCombinedFilter();
     if (filterExp) {
-      console.log("Here 11");
       let filteredData = Query(this.state.dataSource)
         .filter(filterExp)
         .toArray();
@@ -196,6 +195,7 @@ class PlotlyChart extends Component {
   };
 
   // Advance Filteration
+  // Need to fix selection
   advancedFilter = () => {
     let exp = this.state.advancedFilter;
     let err = null;
@@ -297,7 +297,11 @@ class PlotlyChart extends Component {
             onClick={this.singlePointGraphSelection} // Single Selection
             onSelected={this.graphSelection} // Multiple Selection
             onUpdate={() =>
-              console.log(this.state.filteredData, this.state.gridFilteredData)
+              console.log(
+                this.state.filteredData,
+                this.state.gridFilteredData,
+                this.state.selectedData
+              )
             }
             data={[
               {
