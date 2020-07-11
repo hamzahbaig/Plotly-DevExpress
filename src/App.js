@@ -15,7 +15,7 @@ import PlotlyChart from "./components/PlotlyChart/PlotlyChart";
 class App extends React.Component {
   state = {
     dashBoardCurrentItem: 0,
-    dashBoardItems: ["Local Data Grid", "Axis Break", "Plotly Chart"],
+    dashBoardItems: ["Local Data Grid"],
   };
   updateItem = (e) => {
     this.setState({ dashBoardCurrentItem: e.target.getAttribute("id") });

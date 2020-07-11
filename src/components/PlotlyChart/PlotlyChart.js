@@ -12,6 +12,8 @@ import DataGrid, {
   ColumnFixing,
   Editing,
   FilterPanel,
+  FilterBuilderPopup,
+  Column,
 } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
 import { generateData } from "./data.js";
@@ -19,26 +21,48 @@ import Query from "devextreme/data/query";
 
 const Plot = createPlotlyComponent(Plotly);
 
-export class PlotlyChart extends Component {
+const fields = [
+  "Id",
+  "First Name",
+  "Last Name",
+  "Gender",
+  "Brith Date",
+  "Age 1",
+  "Age 2",
+];
+
+const keys = [
+  "id",
+  "firstName",
+  "lastName",
+  "gender",
+  "birthDate",
+  "age1",
+  "age2",
+];
+
+class PlotlyChart extends Component {
   constructor(props) {
     super(props);
     this.state = {
       dataSource: generateData(100),
       dataGrid: null,
       filteredData: null,
-      totalRowsCount: 0,
+      gridFilteredData: null,
       selectedData: [],
       colorList: [],
       selectionColor: "green",
       unselectionColor: "red",
+      advancedFilter: "",
+      advancedFilterFlag: false,
     };
     this.state.filteredData = this.state.dataSource;
+    this.state.gridFilteredData = this.state.dataSource;
   }
 
   componentDidMount() {
     this.setState({
       colorList: this.state.dataSource.map(() => this.state.unselectionColor),
-      totalRowsCount: this.state.dataSource.length,
     });
   }
 
@@ -71,9 +95,10 @@ export class PlotlyChart extends Component {
 
   // Filter interaction between graph and datagrid
   onContentReady = () => {
+    if (this.state.advancedFilterFlag == true) return;
     let filterExp = this.state.dataGrid.instance.getCombinedFilter();
     if (filterExp) {
-      // let f = [["lastName","=","Scott"],"or",["lastName","=","Allen"]]
+      console.log("Here 11");
       let filteredData = Query(this.state.dataSource)
         .filter(filterExp)
         .toArray();
@@ -83,10 +108,11 @@ export class PlotlyChart extends Component {
         colorList[index] = this.state.selectionColor;
       });
       this.setState({
-        filteredData: filteredData,
+        filteredData,
         colorList,
       });
     } else {
+      // No Filter Back to original!
       this.state.dataGrid.instance.clearFilter();
       let colorList = this.state.dataSource.map(
         () => this.state.unselectionColor
@@ -108,6 +134,25 @@ export class PlotlyChart extends Component {
     this.setState({
       selectedData: [],
       colorList: this.state.filteredData.map(() => this.state.unselectionColor),
+    });
+  };
+
+  // Clear Filters
+  onClearAdvancedFilter = () => {
+    this.state.dataGrid.instance.clearFilter();
+    let colorList = this.state.dataSource.map(
+      () => this.state.unselectionColor
+    );
+    this.state.selectedData.forEach((data) => {
+      let index = this.state.dataSource.indexOf(data);
+      colorList[index] = this.state.selectionColor;
+    });
+    this.setState({
+      filteredData: this.state.dataSource,
+      gridFilteredData: this.state.dataSource,
+      colorList,
+      advancedFilterFlag: !this.state.advancedFilterFlag,
+      advancedFilter: "",
     });
   };
 
@@ -150,10 +195,57 @@ export class PlotlyChart extends Component {
     });
   };
 
+  // Advance Filteration
+  advancedFilter = () => {
+    let exp = this.state.advancedFilter;
+    let err = null;
+    fields.forEach((field, index) => {
+      if (exp.indexOf(field) != -1) {
+        exp = exp.replace(field, "data." + keys[index]);
+      } else {
+        err = "Expression Invalid";
+      }
+    });
+    let filteredData = Query(this.state.dataSource)
+      .toArray()
+      .filter((data) => eval(exp));
+    this.setState({
+      gridFilteredData: filteredData,
+      filteredData: filteredData,
+      advancedFilterFlag: true,
+    });
+  };
+
   render() {
     return (
       <div>
         <div>
+          {this.state.advancedFilterFlag ? (
+            <input
+              type="text"
+              name="advancedFilter"
+              value={this.state.advancedFilter}
+              onChange={(e) =>
+                this.setState({ advancedFilter: e.target.value })
+              }
+            />
+          ) : null}
+
+          <Button
+            text="Advanced Filter"
+            visible={!this.state.advancedFilterFlag}
+            onClick={this.onClearAdvancedFilter}
+          />
+          <Button
+            text="Apply"
+            visible={this.state.advancedFilterFlag}
+            onClick={this.advancedFilter}
+          />
+          <Button
+            text="Cancel Advanced Filter"
+            visible={this.state.advancedFilterFlag}
+            onClick={this.onClearAdvancedFilter}
+          />
           <Button
             disabled={!this.state.selectedData.length}
             onClick={this.onClearButtonClicked}
@@ -164,7 +256,7 @@ export class PlotlyChart extends Component {
               id: "gridContainer",
             }}
             ref={(ref) => (this.state.dataGrid = ref)}
-            dataSource={this.state.filteredData}
+            dataSource={this.state.gridFilteredData}
             showBorders={true}
             onSelectionChanged={this.onSelectionChanged}
             onContentReady={this.onContentReady}
@@ -172,23 +264,30 @@ export class PlotlyChart extends Component {
             allowColumnResizing={true}
             selectedRowKeys={this.state.selectedData}
           >
-            {/* <FilterPanel visible={true} /> */}
             <Editing mode="row" useIcons={true} allowUpdating={true} />
             <ColumnChooser enabled={true} />
             <ColumnFixing enabled={true} />
-            <FilterRow visible={true} applyFilter="auto" />
+
+            <FilterRow
+              visible={!this.state.advancedFilterFlag}
+              applyFilter="auto"
+            />
+            <HeaderFilter visible={!this.state.advancedFilterFlag} />
+
             <Selection mode="multiple" selectAllMode="allpages" />
-            <HeaderFilter visible={true} />
+
             <SearchPanel visible={true} width={240} placeholder="Search..." />
             <Sorting mode="multiple" />
             <Scrolling mode="standard" />
+            <FilterPanel visible={true} />
+            <FilterBuilderPopup visible={false} />
           </DataGrid>
           <div className="options">
             <div className="caption">
               Selected Rows: {this.state.selectedData.length}
             </div>
             <div className="caption">
-              Total Rows: {this.state.totalRowsCount}
+              Total Rows: {this.state.filteredData.length}
             </div>
           </div>
         </div>
@@ -197,15 +296,16 @@ export class PlotlyChart extends Component {
           <Plot
             onClick={this.singlePointGraphSelection} // Single Selection
             onSelected={this.graphSelection} // Multiple Selection
+            onUpdate={() =>
+              console.log(this.state.filteredData, this.state.gridFilteredData)
+            }
             data={[
               {
-                type: "scatter",
-                x: this.state.filteredData.map((ele) => ele.id),
-                y: this.state.filteredData.map((ele) => ele.age),
-                text: this.state.filteredData.map((ele) => ele.firstName),
-                customdata: this.state.filteredData.map((ele) => ele.lastName),
+                type: "scattergl",
                 mode: "markers",
-                selectedPoints: this.state.selectedData,
+                x: this.state.filteredData.map((ele) => ele.id),
+                y: this.state.filteredData.map((ele) => ele.age1),
+                text: this.state.filteredData.map((ele) => ele.firstName),
                 marker: { size: 10, color: this.state.colorList },
                 selected: {
                   marker: { color: this.state.selectionColor, size: 15 },
@@ -220,3 +320,7 @@ export class PlotlyChart extends Component {
 }
 
 export default PlotlyChart;
+// NOTE
+// Try to save the prevCurrentFilter
+// and keeping the track fix the oncontent function so u have one
+// datasource changing and the other datasource is just backup. Period!!

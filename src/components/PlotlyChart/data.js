@@ -49,7 +49,8 @@ export function generateData(count) {
       lastName: surnames[random()],
       gender: gender[Math.floor(nameIndex / 5)],
       birthDate: birthDate,
-      age: random(),
+      age1: random(),
+      age2: random()
     };
     items.push(item);
   }
